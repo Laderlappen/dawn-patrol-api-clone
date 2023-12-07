@@ -1,0 +1,14 @@
+.cache
+.lib/
+.vscode/
+dist/*
+target/
+project/boot/
+project/plugins/project/
+.bloop
+.metals
+metals.sbt
+
+.bsp
+.idea*
+.java-version
