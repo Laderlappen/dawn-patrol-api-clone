@@ -16,8 +16,6 @@ import xyz.didx.ai.model.ChatState
 import cats.effect.ExitCode
 import cats.data.EitherT
 
-import cats.effect.unsafe.implicits.global
-
 object Endpoints:
   case class User(name: String) extends AnyVal
   case class Message(msg: String) extends AnyVal
