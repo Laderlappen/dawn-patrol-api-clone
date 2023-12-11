@@ -6,6 +6,11 @@ import org.http4s.ember.server.EmberServerBuilder
 import org.http4s.server.Router
 import sttp.tapir.server.http4s.Http4sServerInterpreter
 
+import xyz.didx.ai.AiHandler
+import xyz.didx.ai.AiHandler.getAiResponse
+import xyz.didx.ai.model.ChatState
+import sttp.tapir.model.StatusCodeRange.Success
+
 object Main extends IOApp:
 
   override def run(args: List[String]): IO[ExitCode] =
@@ -26,7 +31,9 @@ object Main extends IOApp:
       .build
       .use { server =>
         for {
-          _ <- IO.println(s"Go to http://localhost:${server.address.getPort}/docs to open SwaggerUI. Press ENTER key to exit.")
+          _ <- IO.println(
+            s"Go to http://localhost:${server.address.getPort}/docs to open SwaggerUI. Press ENTER key to exit."
+          )
           _ <- IO.readLine
         } yield ()
       }

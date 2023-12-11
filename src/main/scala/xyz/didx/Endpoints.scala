@@ -10,16 +10,56 @@ import sttp.tapir.json.circe.*
 import sttp.tapir.server.ServerEndpoint
 import sttp.tapir.swagger.bundle.SwaggerInterpreter
 
+import xyz.didx.ai.AiHandler
+import xyz.didx.ai.AiHandler.getAiResponse
+import xyz.didx.ai.model.ChatState
+import cats.effect.ExitCode
+import cats.data.EitherT
+
+import cats.effect.unsafe.implicits.global
+
 object Endpoints:
   case class User(name: String) extends AnyVal
   case class Message(msg: String) extends AnyVal
 
-  val echoEndpoint: PublicEndpoint[Message, Unit, String, Any] = endpoint.get
-    .in("echo")
+  val aiEndpoint: PublicEndpoint[Message, Unit, String, Any] = endpoint.get
+    .in("ai")
     .in(query[Message]("msg"))
-    .out(stringBody)
+    .out {
+
+      stringBody
+    }
   val echoServerEndpoint: ServerEndpoint[Any, IO] =
-    echoEndpoint.serverLogicSuccess(message => IO.pure(s"${message.msg}"))
+    aiEndpoint.serverLogicSuccess(message => {
+
+      IO.pure {
+
+        val aiResponse = for {
+          responseState <- EitherT(
+            AiHandler.getAiResponse(
+              input = message.msg,
+              conversationId = "0725320983",
+              state = ChatState.Onboarding,
+              telNo = Some("0725320983")
+            )
+          )
+        } yield s"Got response from AI: ${responseState._1}"
+
+        aiResponse.value.unsafeRunSync() match
+          case Right(response) => {
+            println(s"Ai output ${response}")
+            s"${response}"
+          }
+          case Left(error) => {
+            println(s"Error from AI: $error")
+            s"Error from AI"
+          }
+          case null => {
+            s"Something went wrong"
+          }
+
+      }
+    })
 
   val helloEndpoint: PublicEndpoint[User, Unit, String, Any] = endpoint.get
     .in("hello")
