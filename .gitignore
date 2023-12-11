@@ -12,3 +12,5 @@ metals.sbt
 .bsp
 .idea*
 .java-version
+
+.vscode
