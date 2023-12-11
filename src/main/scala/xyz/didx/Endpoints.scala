@@ -29,11 +29,9 @@ object Endpoints:
 
       stringBody
     }
-  val echoServerEndpoint: ServerEndpoint[Any, IO] =
+  val aiServerEndpoint: ServerEndpoint[Any, IO] =
     aiEndpoint.serverLogicSuccess(message => {
-
-      IO.pure {
-
+      IO.defer {
         val aiResponse = for {
           responseState <- EitherT(
             AiHandler.getAiResponse(
@@ -43,21 +41,20 @@ object Endpoints:
               telNo = Some("0725320983")
             )
           )
-        } yield s"Got response from AI: ${responseState._1}"
+        } yield s"${responseState._1}"
 
-        aiResponse.value.unsafeRunSync() match
-          case Right(response) => {
-            println(s"Ai output ${response}")
-            s"${response}"
-          }
-          case Left(error) => {
-            println(s"Error from AI: $error")
-            s"Error from AI"
-          }
-          case null => {
-            s"Something went wrong"
-          }
+        aiResponse.value
+          .flatMap {
+            case Right(response) => {
+              println(s"Ai output: ${response}")
+              IO.pure(s"${response}")
+            }
+            case Left(error) => {
+              println(s"Error from AI: $error")
+              IO.pure(s"Error generating AI response")
+            }
 
+          }
       }
     })
 
@@ -75,7 +72,7 @@ object Endpoints:
     booksListing.serverLogicSuccess(_ => IO.pure(Library.books))
 
   val apiEndpoints: List[ServerEndpoint[Any, IO]] =
-    List(helloServerEndpoint, booksListingServerEndpoint, echoServerEndpoint)
+    List(helloServerEndpoint, booksListingServerEndpoint, aiServerEndpoint)
 
   val docEndpoints: List[ServerEndpoint[Any, IO]] = SwaggerInterpreter()
     .fromServerEndpoints[IO](apiEndpoints, "dawn-patrol-api", "1.0.0")
