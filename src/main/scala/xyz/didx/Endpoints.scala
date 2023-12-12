@@ -5,6 +5,7 @@ import sttp.tapir.*
 import Library.*
 import cats.effect.IO
 import io.circe.generic.auto.*
+import scala.collection.mutable
 import sttp.tapir.generic.auto.*
 import sttp.tapir.json.circe.*
 import sttp.tapir.server.ServerEndpoint
@@ -16,42 +17,60 @@ import xyz.didx.ai.model.ChatState
 import cats.effect.ExitCode
 import cats.data.EitherT
 
+case class AiInteractionCounter(counter: Int)
+
 object Endpoints:
   case class User(name: String) extends AnyVal
   case class Message(msg: String) extends AnyVal
 
-  val aiEndpoint: PublicEndpoint[Message, Unit, String, Any] = endpoint.get
-    .in("ai")
-    .in(query[Message]("msg"))
-    .out {
+  private var interactionCounter = AiInteractionCounter(0)
+  private val userStates: mutable.Map[String, ChatState] = mutable.Map()
 
-      stringBody
-    }
+  def incrementAiInteractionCounter = {
+    interactionCounter =
+      interactionCounter.copy(counter = interactionCounter.counter + 1)
+    interactionCounter.counter
+  }
+
+  val aiEndpoint: PublicEndpoint[Message, Unit, String, Any] =
+    endpoint.get
+      .in("ai")
+      .in(query[Message]("msg"))
+      .out(stringBody)
   val aiServerEndpoint: ServerEndpoint[Any, IO] =
     aiEndpoint.serverLogicSuccess(message => {
+      val userPhone = "0725320983"
+      val currentState = userStates.getOrElse(userPhone, ChatState.Onboarding)
+
+      println(s"Number of AI interactions: ${incrementAiInteractionCounter}")
+
       IO.defer {
-        val aiResponse = for {
-          responseState <- EitherT(
-            AiHandler.getAiResponse(
-              input = message.msg,
-              conversationId = "0725320983",
-              state = ChatState.Onboarding,
-              telNo = Some("0725320983")
+        val aiResponse =
+          for {
+            responseState <- EitherT(
+              AiHandler.getAiResponse(
+                input = message.msg,
+                conversationId = userPhone,
+                state = currentState,
+                telNo = Some(userPhone)
+              )
             )
+          } yield (
+            s"${responseState._1}",
+            userStates.update(userPhone, responseState._2)
           )
-        } yield s"${responseState._1}"
 
         aiResponse.value
           .flatMap {
             case Right(response) => {
               println(s"Ai output: ${response}")
-              IO.pure(s"${response}")
+              println(s"State: ${userStates.get(userPhone)}")
+              IO.pure(s"${response._1}")
             }
             case Left(error) => {
               println(s"Error from AI: $error")
               IO.pure(s"Error generating AI response")
             }
-
           }
       }
     })
