@@ -10,6 +10,7 @@ import xyz.didx.ai.AiHandler
 import xyz.didx.ai.AiHandler.getAiResponse
 import xyz.didx.ai.model.ChatState
 import sttp.tapir.model.StatusCodeRange.Success
+import xyz.didx.ai.handler.Opportunities
 
 object Main extends IOApp:
 
@@ -31,6 +32,7 @@ object Main extends IOApp:
       .build
       .use { server =>
         for {
+          _ <- Opportunities.fetchAndStoreOpportunities()
           _ <- IO.println(
             s"Go to http://localhost:${server.address.getPort}/docs to open SwaggerUI. Press ENTER key to exit."
           )

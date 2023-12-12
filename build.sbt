@@ -3,6 +3,7 @@ lazy val langchain4jVersion = "0.23.0"
 lazy val xefVersion = "0.0.3"
 
 lazy val rootProject = (project in file(".")).settings(
+  settings,
   Seq(
     name := "dawn-patrol-api",
     version := "0.1.0-SNAPSHOT",
@@ -13,6 +14,8 @@ lazy val rootProject = (project in file(".")).settings(
       "org.http4s" %% "http4s-ember-server" % "0.23.24",
       "com.softwaremill.sttp.tapir" %% "tapir-swagger-ui-bundle" % tapirVersion,
       "com.softwaremill.sttp.tapir" %% "tapir-json-circe" % tapirVersion,
+      "com.softwaremill.sttp.client4" %% "core" % "4.0.0-M6",
+      "com.lihaoyi" %% "upickle" % "3.1.3",
       "ch.qos.logback" % "logback-classic" % "1.4.14",
       "dev.langchain4j" % "langchain4j" % langchain4jVersion,
       "dev.langchain4j" % "langchain4j-hugging-face" % langchain4jVersion,
@@ -27,3 +30,24 @@ lazy val rootProject = (project in file(".")).settings(
     )
   )
 )
+
+// Settings
+lazy val compilerOptions = Seq(
+  "-Xmax-inlines",
+  "50",
+  "-unchecked", // Enable additional warnings where generated code depends on assumptions.
+  "-feature", // Emit warning and location for usages of features that should be imported explicitly.
+  "-language:existentials", // Existential types (besides wildcard types) can be written and inferred
+  "-language:higherKinds", // Allow higher-kinded types
+  "-language:implicitConversions", // Allow definition of implicit functions called views
+  "-language:postfixOps", // Allow postfix operator notation, such as 1 to 10 toList (not recommended)
+  "-deprecation"
+)
+
+lazy val commonSettings = Seq(
+  scalacOptions ++= compilerOptions
+)
+
+lazy val scalafixSettings = Seq(semanticdbEnabled := true)
+
+lazy val settings = commonSettings ++ scalafixSettings
