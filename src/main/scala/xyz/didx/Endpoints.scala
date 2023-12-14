@@ -53,7 +53,7 @@ object Endpoints:
                 input = message.msg,
                 conversationId = userId,
                 state = currentState,
-                telNo = Some(userId)
+                telNo = None
               )
             )
           } yield (
