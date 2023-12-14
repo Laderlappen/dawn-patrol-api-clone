@@ -21,7 +21,7 @@ case class AiInteractionCounter(counter: Int)
 
 object Endpoints:
   case class User(name: String) extends AnyVal
-  case class Message(msg: String) extends AnyVal
+  case class Message(msg: String, id: String)
 
   private var interactionCounter = AiInteractionCounter(0)
   private val userStates: mutable.Map[String, ChatState] = mutable.Map()
@@ -33,14 +33,15 @@ object Endpoints:
   }
 
   val aiEndpoint: PublicEndpoint[Message, Unit, String, Any] =
-    endpoint.get
+    endpoint.post
       .in("ai")
-      .in(query[Message]("msg"))
+      .in(jsonBody[Message])
       .out(stringBody)
+
   val aiServerEndpoint: ServerEndpoint[Any, IO] =
     aiEndpoint.serverLogicSuccess(message => {
-      val userPhone = "0725320983"
-      val currentState = userStates.getOrElse(userPhone, ChatState.Onboarding)
+      val userId = message.id
+      val currentState = userStates.getOrElse(userId, ChatState.Onboarding)
 
       println(s"Number of AI interactions: ${incrementAiInteractionCounter}")
 
@@ -50,21 +51,21 @@ object Endpoints:
             responseState <- EitherT(
               AiHandler.getAiResponse(
                 input = message.msg,
-                conversationId = userPhone,
+                conversationId = userId,
                 state = currentState,
-                telNo = Some(userPhone)
+                telNo = Some(userId)
               )
             )
           } yield (
             s"${responseState._1}",
-            userStates.update(userPhone, responseState._2)
+            userStates.update(userId, responseState._2)
           )
 
         aiResponse.value
           .flatMap {
             case Right(response) => {
               println(s"Ai output: ${response}")
-              println(s"State: ${userStates.get(userPhone)}")
+              println(s"State: ${userStates.get(userId)}")
               IO.pure(s"${response._1}")
             }
             case Left(error) => {
